@@ -9,7 +9,11 @@ interface GearStore {
   searchTerm: string;
   luaCode: string;
   selectedModes: Record<string, string>;
+  characterName: string;
+  jobName: string;
 
+  // Actions
+  setCharacterInfo: (name: string, job: string) => void;
   setTheme: (theme: 'dark' | 'ffxi') => void;
   setActiveTab: (tab: string) => void;
   setSearchTerm: (term: string) => void;
@@ -27,7 +31,7 @@ interface GearStore {
 export const useGearStore = create<GearStore>()(
   persist(
     (set) => ({
-      // Default sets now match the LUA style
+      // Defaults
       allSets: { "sets.idle": {}, "sets.engaged": {} },
       activeTab: "sets.idle",
       theme: 'dark',
@@ -35,6 +39,11 @@ export const useGearStore = create<GearStore>()(
       searchTerm: "",
       luaCode: "",
       selectedModes: {},
+      characterName: "",
+      jobName: "",
+
+      // Character Info Action
+      setCharacterInfo: (name, job) => set({ characterName: name, jobName: job }),
 
       initializeItems: (data) => set({ searchableItems: data }),
       setTheme: (theme) => set({ theme }),
@@ -67,11 +76,12 @@ export const useGearStore = create<GearStore>()(
         activeTab: "sets.idle",
         searchTerm: "",
         luaCode: "",
-        selectedModes: {}
+        selectedModes: {},
+        characterName: "",
+        jobName: ""
       }),
 
       addSet: (name) => set((state) => {
-        // Ensure the path always starts with 'sets.'
         const cleanName = name.startsWith('sets.') ? name : `sets.${name}`;
         return {
           allSets: { ...state.allSets, [cleanName]: {} },
@@ -87,7 +97,7 @@ export const useGearStore = create<GearStore>()(
         const keys = Object.keys(incomingSets);
         return {
           ...state, 
-          allSets: incomingSets, // Replace entirely on import for Gearswap sync
+          allSets: incomingSets,
           activeTab: keys.find(k => k === 'sets.idle') || keys[0] || "sets.idle"
         };
       }),
@@ -96,7 +106,6 @@ export const useGearStore = create<GearStore>()(
         const newSets = { ...state.allSets };
         delete newSets[setKey];
 
-        // If we deleted everything, reset to defaults
         if (Object.keys(newSets).length === 0) {
           return {
             allSets: { "sets.idle": {}, "sets.engaged": {} },
@@ -104,7 +113,6 @@ export const useGearStore = create<GearStore>()(
           };
         }
 
-        // If we deleted the active tab, find a sibling or default to idle
         let nextActiveTab = state.activeTab;
         if (state.activeTab === setKey) {
           nextActiveTab = Object.keys(newSets)[0];
@@ -126,6 +134,7 @@ export const useGearStore = create<GearStore>()(
     {
       name: 'gearswap-studio-storage',
       partialize: (state) => {
+        // We exclude searchableItems and searchTerm from storage to save space
         const { searchableItems, searchTerm, ...rest } = state;
         return rest as GearStore;
       },

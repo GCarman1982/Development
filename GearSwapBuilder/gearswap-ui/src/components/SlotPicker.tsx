@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 export function SlotPicker({ slot, setName }: { slot: string; setName: string }) {
   const { allSets, updateSlot, searchableItems } = useGearStore();
   const [search, setSearch] = useState("");
-  // 1. Add open state to control the popover manually
   const [open, setOpen] = useState(false);
 
   const rawSelected = allSets[setName]?.[slot] || "";
@@ -25,7 +24,6 @@ export function SlotPicker({ slot, setName }: { slot: string; setName: string })
 
   return (
     <div className="w-full h-full">
-      {/* 2. Bind open and onOpenChange to our state */}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <div className={cn(
@@ -49,9 +47,9 @@ export function SlotPicker({ slot, setName }: { slot: string; setName: string })
             </div>
 
             {isEquipped && (
+              /* Replaced inline style with Tailwind classes for the side indicator */
               <div 
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[40%] bg-brand shadow-[2px_0_10px_rgba(var(--brand-rgb),0.8)]" 
-                style={{ borderRadius: '0 2px 2px 0' }}
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[40%] bg-brand shadow-[2px_0_10px_rgba(var(--brand-rgb),0.8)] rounded-r-[2px]" 
               />
             )}
           </div>
@@ -72,7 +70,6 @@ export function SlotPicker({ slot, setName }: { slot: string; setName: string })
                   onSelect={() => { 
                     updateSlot(setName, slot, ""); 
                     setSearch(""); 
-                    // 3. Close popover on clear
                     setOpen(false); 
                   }} 
                   className="ff-interactive text-xs py-2.5 px-8 text-red-400 hover:bg-red-500/10 border-b border-white/5"
@@ -88,7 +85,6 @@ export function SlotPicker({ slot, setName }: { slot: string; setName: string })
                       onSelect={() => { 
                         updateSlot(setName, slot, item); 
                         setSearch(""); 
-                        // 4. Close popover on selection
                         setOpen(false); 
                       }} 
                       className="ff-interactive text-xs py-2.5 px-8 text-white/80 hover:bg-brand/20 hover:text-white"
