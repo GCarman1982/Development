@@ -1,4 +1,5 @@
-import { useGearStore } from "../store/useGearStore";
+import React, { useEffect } from "react";
+import { useGearStore, EquippedItem } from "../store/useGearStore";
 
 const SLOT_ORDER = [
   "main", "sub", "range", "ammo",
@@ -10,10 +11,17 @@ const SLOT_ORDER = [
 export function LuaPreview() {
   const { allSets, activeTab } = useGearStore();
 
-  // Filter: Show the specific active set AND any nested children of that set
   const visibleSets = Object.entries(allSets).filter(([name]) => {
     return name === activeTab || name.startsWith(`${activeTab}.`);
   });
+
+  // SAFETY DEBUGGER: This will tell us if 'allSets' actually contains objects or just strings
+  useEffect(() => {
+    if (visibleSets.length > 0) {
+      console.log("--- UI Data Check ---");
+      console.log("Current Set Data:", visibleSets[0][1]);
+    }
+  }, [visibleSets]);
 
   return (
     <div className="flex-1 w-full h-full p-6 font-mono text-[13px] overflow-auto custom-scrollbar border-l border-white/10
@@ -31,29 +39,78 @@ export function LuaPreview() {
 
           return (
             <div key={setName} className="mb-8 select-all leading-tight">
-              {/* Header: sets.precast.WS = { */}
               <div className="text-zinc-400">
                 sets.<span className="text-amber-500">{base}</span>
                 <span className="text-emerald-500">{variant}</span> = {"{"}
               </div>
 
-              {/* Items: Preserved original pl-4 flex gap-1 spacing for both modes */}
               {SLOT_ORDER.map((slot) => {
-  // Only get the item if it explicitly exists in the gear object
-  const item = gear[slot] || (slot === 'range' ? gear['ranged'] : null);
-  
-  // If the item is missing, null, or empty string, don't render the line
-  if (!item || item === "None" || item === "empty" || item === "") return null;
+                const itemData = gear[slot];
+                
+                if (!itemData || itemData === "None" || itemData === "empty" || itemData === "") return null;
 
-  return (
-    <div key={slot} className="pl-4 flex gap-1 items-baseline">
-      <span className="text-sky-400">{slot}</span>
-      <span className="text-zinc-400">=</span>
-      <span className="text-emerald-400">"{item}"</span>
-      <span className="text-zinc-400">,</span>
-    </div>
-  );
-})}
+                // IF STRING
+                if (typeof itemData === 'string') {
+                  return (
+                    <div key={slot} className="pl-4 flex gap-1 items-baseline">
+                      <span className="text-sky-400">{slot}</span>
+                      <span className="text-zinc-400">=</span>
+                      <span className="text-emerald-400">"{itemData}"</span>
+                      <span className="text-zinc-400">,</span>
+                    </div>
+                  );
+                }
+
+                // IF OBJECT
+                const item = itemData as EquippedItem;
+                return (
+                  <div key={slot} className="pl-4 flex flex-col my-0.5">
+                    <div className="flex gap-1 items-baseline">
+                      <span className="text-sky-400">{slot}</span>
+                      <span className="text-zinc-400">={"{"}</span>
+                      <span className="text-sky-300">name</span>
+                      <span className="text-zinc-400">=</span>
+                      <span className="text-emerald-400">"{item.name}"</span>
+                      <span className="text-zinc-400">,</span>
+                    </div>
+                    
+                    {item.augments && item.augments.length > 0 && (
+                      <div className="pl-4 flex gap-1 items-baseline">
+                        <span className="text-sky-300">augments</span>
+                        <span className="text-zinc-400">={"{"}</span>
+                        <span className="text-emerald-200">
+                          {item.augments.map((a, i) => (
+                            <React.Fragment key={i}>
+                              "{a}"{i < item.augments!.length - 1 ? "," : ""}
+                            </React.Fragment>
+                          ))}
+                        </span>
+                        <span className="text-zinc-400">{"}"},</span>
+                      </div>
+                    )}
+
+                    {item.path && (
+                      <div className="pl-4 flex gap-1 items-baseline">
+                        <span className="text-sky-300">path</span>
+                        <span className="text-zinc-400">=</span>
+                        <span className="text-emerald-400">"{item.path}"</span>
+                        <span className="text-zinc-400">,</span>
+                      </div>
+                    )}
+
+                    {item.rank !== undefined && (
+                      <div className="pl-4 flex gap-1 items-baseline">
+                        <span className="text-sky-300">rank</span>
+                        <span className="text-zinc-400">=</span>
+                        <span className="text-amber-400">{item.rank}</span>
+                        <span className="text-zinc-400">,</span>
+                      </div>
+                    )}
+
+                    <div className="text-zinc-400">{"},"}</div>
+                  </div>
+                );
+              })}
 
               <div className="text-zinc-400">{"}"}</div>
             </div>

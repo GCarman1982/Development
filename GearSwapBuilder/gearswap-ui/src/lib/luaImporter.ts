@@ -1,10 +1,12 @@
-export interface GearSet {
-  [slot: string]: string;
+export interface EquippedItem {
+  name: string;
+  augments?: string[];
+  rank?: number;
+  path?: string;
 }
 
-export interface AllSets {
-  [setName: string]: GearSet;
-}
+export type GearSet = Record<string, string | EquippedItem>;
+export type AllSets = Record<string, GearSet>;
 
 export interface ImportLog {
   status: 'success' | 'warning' | 'error';
@@ -18,115 +20,108 @@ export interface ParseResult {
 }
 
 export const parseLuaToSets = (luaText: string): ParseResult => {
+  console.log("--- Parser Started ---");
   const sets: AllSets = {};
   const logs: ImportLog[] = [];
+  
+  const cleanLua = luaText.replace(/--.*$/gm, "");
+  const setFinder = /sets(?:[\.\[]['"]?[\w\d_ \-\+]+['"]?\]?)+\s*=\s*/g;
+  
+  let match;
+  let foundAny = false;
 
-  // 1. Remove comments but keep lines intact to preserve character positions
-  const cleanLua = luaText.replace(/--.*$/gm, (match) => " ".repeat(match.length));
+  while ((match = setFinder.exec(cleanLua)) !== null) {
+    foundAny = true;
+    const fullMatch = match[0];
+    const path = fullMatch.replace(/sets[\.\[]?/, "").replace(/[\]\s=]+$/, "").replace(/['"]/g, "");
+    
+    const startIndex = setFinder.lastIndex;
+    const remainingText = cleanLua.substring(startIndex).trim();
 
-  const instructions: Record<string, { type: 'table' | 'pointer', data: any, base?: string }> = {};
-
-  try {
-    // This regex identifies the path (sets.etc) and the assignment
-    const setStartRegex = /sets(?:\.[\w\d_]+|(?:\s*\[\s*['"][^'"]+['"]\s*\]))+\s*=\s*/g;
-
-    let match;
-    while ((match = setStartRegex.exec(cleanLua)) !== null) {
-      const fullMatch = match[0].replace(/\s*=\s*$/, '').trim();
-      const path = fullMatch.replace(/^sets\s*\.\s*/, '').replace(/^sets/, '').trim();
-      const startIndex = setStartRegex.lastIndex;
-      const remainingText = cleanLua.substring(startIndex).trim();
-
-      // Check for pointers (e.g., sets.A = sets.B)
-      const pointerMatch = remainingText.match(/^sets(?:\.[\w\d_]+|(?:\s*\[\s*['"][^'"]+['"]\s*\]))+(?!\s*\(?\s*\{)/);
-      if (pointerMatch && !pointerMatch[0].includes('{')) {
-        const sourcePath = pointerMatch[0].replace(/^sets\s*\.\s*/, '').replace(/^sets/, '').trim();
-        instructions[path] = { type: 'pointer', data: sourcePath };
-        setStartRegex.lastIndex = startIndex + pointerMatch[0].length;
-        continue;
+    if (remainingText.startsWith('{')) {
+      let depth = 0;
+      let endIndex = -1;
+      const absoluteStart = cleanLua.indexOf('{', startIndex);
+      
+      for (let i = absoluteStart; i < cleanLua.length; i++) {
+        if (cleanLua[i] === '{') depth++;
+        else if (cleanLua[i] === '}') depth--;
+        if (depth === 0) {
+          endIndex = i;
+          break;
+        }
       }
 
-      // Find the specific { ... } block for THIS assignment
-      const braceStartIndex = cleanLua.indexOf('{', startIndex);
-      if (braceStartIndex !== -1) {
-        let depth = 0;
-        let braceEndIndex = -1;
-        for (let i = braceStartIndex; i < cleanLua.length; i++) {
-          if (cleanLua[i] === '{') depth++;
-          else if (cleanLua[i] === '}') depth--;
-          if (depth === 0) {
-            braceEndIndex = i;
-            break;
-          }
-        }
-
-        if (braceEndIndex !== -1) {
-          // CAPTURE ONLY WHAT IS INSIDE THESE SPECIFIC BRACES
-          const setContent = cleanLua.substring(braceStartIndex + 1, braceEndIndex);
-          
-          // Check for explicit set_combine
-          const combineMatch = cleanLua.substring(startIndex, braceStartIndex).match(/set_combine\s*\(\s*(sets(?:\.[\w\d_]+|(?:\s*\[\s*['"][^'"]+['"]\s*\]))+)\s*,\s*/);
-          const basePath = combineMatch ? combineMatch[1].replace(/^sets\s*\.\s*/, '').replace(/^sets/, '').trim() : undefined;
-
-          instructions[path] = { type: 'table', data: setContent, base: basePath };
-          setStartRegex.lastIndex = braceEndIndex;
-        }
+      if (endIndex !== -1) {
+        const setBlock = cleanLua.substring(absoluteStart + 1, endIndex);
+        sets[path] = parseGearBlock(setBlock);
       }
     }
-
-    const resolveGear = (path: string, visited = new Set<string>()): GearSet => {
-      if (visited.has(path)) return {};
-      visited.add(path);
-
-      const instr = instructions[path];
-      if (!instr) return {};
-      if (instr.type === 'pointer') return resolveGear(instr.data, visited);
-
-      // NO AUTOMATIC INHERITANCE. 
-      // Only merge if set_combine was written in the Lua for this specific set.
-      let gear: GearSet = {};
-      if (instr.base) {
-        gear = { ...resolveGear(instr.base, visited) };
-      }
-
-      // Strictly find "slot = item" patterns
-      // Support for: slot="Item", slot='Item', slot={name="Item"}, slot=empty
-      const slotRegex = /([\w\d_]+)\s*=\s*(?:\{[^}]*?name\s*=\s*(["'])(.*?)\2|(["'])(.*?)\4|([\w\d\._\-\+]+))/g;
-      
-      const slotMap: Record<string, string> = {
-        left_ear: "ear1", right_ear: "ear2",
-        left_ring: "ring1", right_ring: "ring2"
-      };
-
-      let itemMatch;
-      while ((itemMatch = slotRegex.exec(instr.data)) !== null) {
-        const rawSlot = itemMatch[1].toLowerCase();
-        // Skip 'name' because it's part of the Gearswap {name="Item"} syntax, not a slot
-        if (rawSlot === 'name') continue;
-
-        const slot = slotMap[rawSlot] || rawSlot;
-        const itemName = itemMatch[3] || itemMatch[5] || itemMatch[6];
-
-        if (slot && itemName) {
-          const finalItem = itemName.trim();
-          if (finalItem === 'empty' || finalItem === 'nil') {
-            delete gear[slot];
-          } else {
-            // Apostrophes in itemMatch[3] and [5] are preserved exactly
-            gear[slot] = finalItem;
-          }
-        }
-      }
-      return gear;
-    };
-
-    Object.keys(instructions).forEach(path => {
-      sets[path] = resolveGear(path);
-    });
-
-  } catch (err: any) {
-    logs.push({ status: 'error', message: err.message });
   }
 
   return { sets, logs };
 };
+
+function parseGearBlock(block: string): GearSet {
+  const gear: GearSet = {};
+  const slotMap: Record<string, string> = {
+    left_ear: "ear1", right_ear: "ear2",
+    left_ring: "ring1", right_ring: "ring2"
+  };
+
+  /**
+   * 1. TABLE PARSING (slot={...})
+   * Uses backreferences \2 to ensure name="Mpaca's Cap" captures the whole string
+   */
+  const tableRegex = /([\w\d_]+)\s*=\s*\{([^{}]*?\{[^{}]*?\}[^{}]*?|[^{}]*?)\}/g;
+  
+  let match;
+  while ((match = tableRegex.exec(block)) !== null) {
+    const rawSlot = match[1].toLowerCase();
+    if (['name', 'augments', 'path', 'rank'].includes(rawSlot)) continue;
+
+    const slot = slotMap[rawSlot] || rawSlot;
+    const content = match[2];
+
+    // Refined name match: matches starting quote and only stops at the same ending quote
+    const nameMatch = content.match(/name\s*=\s*(["'])(.*?)\1/);
+    if (nameMatch) {
+      const item: EquippedItem = { name: nameMatch[2].trim() };
+
+      if (content.includes("augments")) {
+        const augStart = content.indexOf('{', content.indexOf('augments'));
+        const augEnd = content.indexOf('}', augStart);
+        if (augStart !== -1 && augEnd !== -1) {
+          item.augments = content.substring(augStart + 1, augEnd)
+            .split(',')
+            .map(a => a.replace(/['"\r\n\t]/g, '').trim())
+            .filter(a => a !== "");
+        }
+      }
+      
+      // Path and Rank matches
+      const pathMatch = content.match(/path\s*=\s*(["'])(.*?)\1/);
+      if (pathMatch) item.path = pathMatch[2];
+
+      const rankMatch = content.match(/rank\s*=\s*(\d+)/);
+      if (rankMatch) item.rank = parseInt(rankMatch[1]);
+
+      gear[slot] = item;
+    }
+  }
+
+  /**
+   * 2. STRING PARSING (slot="Item Name")
+   * Updated to handle apostrophes correctly
+   */
+  const stringRegex = /([\w\d_]+)\s*=\s*(["'])(.*?)\2/g;
+  while ((match = stringRegex.exec(block)) !== null) {
+    const slot = slotMap[match[1].toLowerCase()] || match[1].toLowerCase();
+    // Don't overwrite if we already found a table version of this slot
+    if (!gear[slot] && !['name', 'path', 'augments'].includes(slot)) {
+      gear[slot] = match[3].trim();
+    }
+  }
+
+  return gear;
+}

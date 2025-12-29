@@ -272,3 +272,45 @@
 [data-theme='ffxi'] [cmdk-root] { background-color: var(--window-bg) !important; }
 
 button, .cursor-pointer, .ff-interactive { cursor: pointer !important; }
+
+/* --- 10. TOOLTIPS --- */
+/* --- 10. TOOLTIP ENHANCEMENTS --- */
+.ff-tooltip {
+  @apply antialiased select-none;
+  background: var(--window-bg) !important;
+  /* Increase padding and ensure a high-contrast border */
+  padding: 0.75rem 1rem !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+  min-width: 220px;
+}
+
+[data-theme='ffxi'] .ff-tooltip {
+  border: 1px solid #fff !important;
+  outline: 1px solid #000 !important;
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.8) !important;
+  /* FFXI tooltips usually have a very distinct blue gradient */
+  background: linear-gradient(180deg, #0000aa 0%, #000044 100%) !important;
+}
+
+.tooltip-title {
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.025em;
+  color: var(--brand-color) !important;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.25rem;
+}
+
+.tooltip-aug {
+  font-size: 13px !important;
+  line-height: 1.4;
+  color: #22c55e; /* Lua Green */
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+[data-theme='ffxi'] .tooltip-aug {
+  color: #00ff00 !important; /* Brighter green for the blue background */
+  text-shadow: 1px 1px 0px #000;
+}
