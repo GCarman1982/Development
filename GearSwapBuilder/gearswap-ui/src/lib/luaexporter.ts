@@ -1,19 +1,6 @@
 import { GearSet, EquippedItem } from '@/store/useGearStore';
 
-const SLOT_ORDER = [
-  "main", "sub", "range", "ammo",
-  "head", "neck", "ear1", "ear2",
-  "body", "hands", "ring1", "ring2",
-  "back", "waist", "legs", "feet"
-];
-
-// Map UI/Display names back to GearSwap standard keys
-// const REVERSE_SLOT_MAP: Record<string, string> = {
-//   left_ear: "ear1",
-//   right_ear: "ear2",
-//   left_ring: "ring1",
-//   right_ring: "ring2"
-// };
+import { SLOT_ORDER } from './constants';
 
 export const generateUpdatedLua = (
   originalLua: string,
@@ -114,7 +101,10 @@ function findClosingBrace(text: string, startIdx: number): number {
 const formatGearLines = (gear: GearSet): string => {
   const keys = Object.keys(gear);
   if (keys.length === 0) return `        -- No overrides`;
-  return keys
+
+  // Sort gear by standard SLOT_ORDER
+  return SLOT_ORDER
+    .filter(slot => gear[slot] !== undefined)
     .map(slot => `        ${slot}=${itemToLua(gear[slot])},`)
     .join('\n');
 };

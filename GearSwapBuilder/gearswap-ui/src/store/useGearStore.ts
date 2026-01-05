@@ -25,7 +25,13 @@ interface GearStore {
   characterName: string;
   jobName: string;
 
+  // Modal State
+  isAugmentModalOpen: boolean;
+  modalTarget: { setName: string; slot: string; item: EquippedItem } | null;
+
   // Actions
+  openAugmentModal: (setName: string, slot: string, item: EquippedItem) => void;
+  closeAugmentModal: () => void;
   setCharacterInfo: (name: string, job: string) => void;
   setTheme: (theme: 'dark' | 'ffxi') => void;
   setActiveTab: (tab: string) => void;
@@ -61,6 +67,19 @@ export const useGearStore = create<GearStore>()(
       characterName: "",
       jobName: "",
 
+      isAugmentModalOpen: false,
+      modalTarget: null,
+
+      openAugmentModal: (setName, slot, item) => set({
+        isAugmentModalOpen: true,
+        modalTarget: { setName, slot, item }
+      }),
+
+      closeAugmentModal: () => set({
+        isAugmentModalOpen: false,
+        modalTarget: null
+      }),
+
       setCharacterInfo: (name, job) => set({ characterName: name, jobName: job }),
 
       setIsLoadingItems: (isLoading) => set({ isLoadingItems: isLoading }),
@@ -75,8 +94,8 @@ export const useGearStore = create<GearStore>()(
 
       setBaseSets: (bases) => set({ baseSets: bases }),
 
-      setLuaCode: (code) => set((state) => {
-        const stateRegex = /state\.(\w+):options\((.*?)\)/g;
+      setLuaCode: (code) => set(() => {
+        const stateRegex = /\s*state\.(\w+)\s*:\s*options\s*\((.*?)\)/g;
         const initialModes: Record<string, string> = {};
         let match;
 
@@ -127,10 +146,9 @@ export const useGearStore = create<GearStore>()(
         allSets: { ...state.allSets, [setName]: {} }
       })),
 
-      importSets: (incomingSets, bases = {}) => set((state) => {
+      importSets: (incomingSets, bases = {}) => set(() => {
         const keys = Object.keys(incomingSets);
         return {
-          ...state,
           allSets: incomingSets,
           baseSets: bases,
           activeTab: keys.find(k => k === 'sets.idle') || keys[0] || "sets.idle"
@@ -187,11 +205,13 @@ export const useGearStore = create<GearStore>()(
     {
       name: 'gearswap-studio-storage',
       partialize: (state) => {
-        const rest = { ...state };
-        delete (rest as any).searchableItems;
-        delete (rest as any).searchTerm;
-        delete (rest as any).isLoadingItems;
-        return rest as GearStore;
+        const rest = { ...state } as Record<string, unknown>;
+        delete rest.searchableItems;
+        delete rest.searchTerm;
+        delete rest.isLoadingItems;
+        delete rest.isAugmentModalOpen;
+        delete rest.modalTarget;
+        return rest as unknown as GearStore;
       },
     }
   )

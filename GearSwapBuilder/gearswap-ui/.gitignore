@@ -63,3 +63,10 @@ pnpm-debug.log*
 
 # TypeScript
 *.tsbuildinfo
+
+# Linting
+lint_*
+*_lint.txt
+*_lint.json
+lint.debug.txt
+App_lint.txt

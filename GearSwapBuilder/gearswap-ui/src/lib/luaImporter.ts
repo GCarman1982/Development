@@ -1,3 +1,5 @@
+import { SLOT_MAP } from './constants';
+
 export interface EquippedItem {
   name: string;
   augments?: string[];
@@ -28,25 +30,25 @@ export const parseLuaToSets = (luaText: string): ParseResult => {
   const sets: AllSets = {};
   const baseSets: Record<string, string> = {}; // 2. Initialize the map
   const logs: ImportLog[] = [];
-  
+
   const cleanLua = luaText.replace(/--.*$/gm, "");
   const setFinder = /sets((?:[\.\[]['"]?[\w\d_ \-\+:]+['"]?\]?)+)\s*=\s*/g;
-  
+
   let match;
   while ((match = setFinder.exec(cleanLua)) !== null) {
     let path = match[1].trim();
     if (path.startsWith('.')) path = path.substring(1);
-    
+
     const startIndex = setFinder.lastIndex;
     const remainingText = cleanLua.substring(startIndex).trim();
 
     if (remainingText.startsWith('set_combine')) {
       const baseSetMatch = remainingText.match(/set_combine\s*\(\s*sets((?:[\.\[]['"]?[\w\d_ \-\+:]+['"]?\]?)+)/);
-      
+
       // 3. Capture the base set relationship
       if (baseSetMatch) {
         const baseSetName = baseSetMatch[1].replace(/^\./, "").trim();
-        baseSets[path] = `sets.${baseSetName}`; 
+        baseSets[path] = `sets.${baseSetName}`;
       }
 
       const absoluteStart = cleanLua.indexOf('{', startIndex);
@@ -55,14 +57,14 @@ export const parseLuaToSets = (luaText: string): ParseResult => {
       if (absoluteStart !== -1 && endIndex !== -1) {
         const setBlock = cleanLua.substring(absoluteStart + 1, endIndex);
         sets[path] = parseGearBlock(setBlock);
-        
-        logs.push({ 
-          status: 'success', 
-          message: `Imported overrides for ${path}`, 
-          path 
+
+        logs.push({
+          status: 'success',
+          message: `Imported overrides for ${path}`,
+          path
         });
       }
-    } 
+    }
     else if (remainingText.startsWith('{')) {
       const absoluteStart = cleanLua.indexOf('{', startIndex);
       const endIndex = findClosingBrace(cleanLua, absoluteStart);
@@ -106,21 +108,17 @@ function findClosingBrace(text: string, startIdx: number): number {
  */
 function parseGearBlock(block: string): GearSet {
   const gear: GearSet = {};
-  const slotMap: Record<string, string> = {
-    left_ear: "ear1", right_ear: "ear2",
-    left_ring: "ring1", right_ring: "ring2"
-  };
 
   // 1. Parse Table Items: slot={name="...", augments={...}}
   // Handles nested braces for augments correctly
   const tableRegex = /([\w\d_]+)\s*=\s*\{([^{}]*?\{[^{}]*?\}[^{}]*?|[^{}]*?)\}/g;
-  
+
   let match;
   while ((match = tableRegex.exec(block)) !== null) {
     const rawSlot = match[1].toLowerCase();
     if (['name', 'augments', 'path', 'rank'].includes(rawSlot)) continue;
 
-    const slot = slotMap[rawSlot] || rawSlot;
+    const slot = SLOT_MAP[rawSlot] || rawSlot;
     const content = match[2];
 
     const nameMatch = content.match(/name\s*=\s*(["'])(.*?)\1/);
@@ -138,7 +136,7 @@ function parseGearBlock(block: string): GearSet {
             .filter(a => a !== "");
         }
       }
-      
+
       const pathMatch = content.match(/path\s*=\s*(["'])(.*?)\1/);
       if (pathMatch) item.path = pathMatch[2];
 
@@ -153,8 +151,8 @@ function parseGearBlock(block: string): GearSet {
   const stringRegex = /([\w\d_]+)\s*=\s*(["'])(.*?)\2/g;
   while ((match = stringRegex.exec(block)) !== null) {
     const slotName = match[1].toLowerCase();
-    const slot = slotMap[slotName] || slotName;
-    
+    const slot = SLOT_MAP[slotName] || slotName;
+
     // Skip if it's a property or already filled by a table
     if (!gear[slot] && !['name', 'path', 'augments'].includes(slot)) {
       gear[slot] = match[3].trim();

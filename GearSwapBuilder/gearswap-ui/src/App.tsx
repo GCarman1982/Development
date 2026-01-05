@@ -4,10 +4,18 @@ import { GearGrid } from "./components/GearGrid";
 import { LuaPreview } from "./components/LuaPreview";
 import { Sidebar } from "./components/Sidebar";
 import { useGearStore } from "./store/useGearStore";
+import { AugmentModal } from "./components/gear/augment-modal";
 
 export default function App() {
   const theme = useGearStore((state) => state.theme);
-  const { initializeItems, setIsLoadingItems } = useGearStore();
+  const {
+    initializeItems,
+    setIsLoadingItems,
+    isAugmentModalOpen,
+    closeAugmentModal,
+    modalTarget,
+    updateSlot
+  } = useGearStore();
 
   useEffect(() => {
     async function loadItems() {
@@ -55,8 +63,16 @@ export default function App() {
         <aside className="ff-window no-hand flex-1 min-w-[480px] border-l border-white/10 flex flex-col overflow-hidden bg-black/20 backdrop-blur-sm">
           <LuaPreview />
         </aside>
-
       </div>
+
+      {modalTarget && (
+        <AugmentModal
+          item={modalTarget.item}
+          isOpen={isAugmentModalOpen}
+          onOpenChange={closeAugmentModal}
+          onUpdate={(newData) => updateSlot(modalTarget.setName, modalTarget.slot, newData)}
+        />
+      )}
     </div>
   );
 }
