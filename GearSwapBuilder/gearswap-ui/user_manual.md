@@ -105,7 +105,10 @@ Once you're happy with your sets:
 
 1.  Review the **Lua Preview** on the right to ensure the code looks correct.
 2.  Click the **Export** button in the Top Navigation bar.
-3.  The Studio will prompt you to save the file. 
+3.  **Preview & Edit**: An **Export Preview** dialog will appear.
+    - This allows you to do a final check of the full Lua code.
+    - **You can edit this code directly!** If you need to add custom functions, comments, or tweak logic before saving, do it here.
+4.  Click **Save Code** to download the file to your computer.
 
 If you imported an existing file, the Studio is smart enough to **merge** your changes back into your original file structure, preserving your logic while updating the gear sets.
 
