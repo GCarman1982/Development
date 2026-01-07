@@ -7,6 +7,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { parseLuaToSets } from "@/lib/luaImporter";
 import { generateUpdatedLua } from "@/lib/luaexporter";
+import { ExportPreviewDialog } from "./ExportPreviewDialog";
 
 export function TopNav() {
   const {
@@ -25,6 +26,9 @@ export function TopNav() {
   } = useGearStore();
 
   const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
+  const [showExportPreview, setShowExportPreview] = useState(false);
+  const [exportCode, setExportCode] = useState("");
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasSets = Object.keys(allSets || {}).length > 0;
@@ -61,42 +65,11 @@ export function TopNav() {
     reader.readAsText(file);
   };
 
-  const handleExport = async () => {
-    // Logic fix: Pass 3 arguments to preserve set_combine structure
+  const handleExport = () => {
+    // Generate the most up-to-date lua
     const finalLua = generateUpdatedLua(luaCode, allSets, baseSets);
-    const fileName = characterName && jobName ? `${characterName}_${jobName}_Gear.lua` : "Exported_Gear.lua";
-
-    // RESTORED: File System Access API (Save Picker)
-    if ('showSaveFilePicker' in window) {
-      try {
-        const handle = await (window as any).showSaveFilePicker({
-          suggestedName: fileName,
-          types: [{
-            description: 'Lua Script',
-            accept: { 'text/x-lua': ['.lua'] },
-          }],
-        });
-
-        const writable = await handle.createWritable();
-        await writable.write(finalLua);
-        await writable.close();
-        return; 
-      } catch (err) {
-        if ((err as Error).name === 'AbortError') return;
-        console.error("File Picker failed, falling back to download", err);
-      }
-    }
-
-    // FALLBACK: Standard Download
-    const blob = new Blob([finalLua], { type: "text/x-lua" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    setExportCode(finalLua);
+    setShowExportPreview(true);
   };
 
   return (
@@ -196,6 +169,14 @@ export function TopNav() {
         }}
         title="Purge All Data"
         itemName="ALL gear sets and character info"
+      />
+
+
+      <ExportPreviewDialog
+        open={showExportPreview}
+        onOpenChange={setShowExportPreview}
+        initialCode={exportCode}
+        suggestedFileName={characterName && jobName ? `${characterName}_${jobName}_Gear.lua` : "Exported_Gear.lua"}
       />
     </nav>
   );
