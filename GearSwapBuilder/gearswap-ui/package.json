@@ -1,9 +1,9 @@
 {
   "name": "gearswap-ui",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A classic FFXI-style GearSwap set builder",
-  "author": "Quishwar",     
+  "author": "Quishwar",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -77,4 +77,4 @@
       "dist-electron"
     ]
   }
-} 
+}

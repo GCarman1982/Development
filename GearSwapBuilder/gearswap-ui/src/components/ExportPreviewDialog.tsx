@@ -42,7 +42,10 @@ export function ExportPreviewDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="fixed bottom-0 left-[50%] translate-x-[-50%] translate-y-0 sm:max-w-4xl w-full h-[85vh] flex flex-col bg-[#0a0a0c] border-x border-t border-white/10 text-zinc-100 p-0 overflow-hidden z-[200] rounded-t-xl shadow-2xl">
+            <DialogContent className="fixed z-[200] flex flex-col gap-0 w-full bg-[#0a0a0c] p-0 shadow-2xl overflow-hidden
+            bottom-0 top-auto translate-y-0 left-0 right-0 translate-x-0 mx-auto
+            h-[85vh] rounded-t-xl border-t border-x border-white/10
+            sm:bottom-6 sm:h-[85vh] sm:max-w-4xl sm:rounded-xl sm:border">
                 <div className="flex flex-col w-full h-full">
                     <DialogHeader className="px-6 pt-6">
                         <DialogTitle className="text-brand">Export Preview</DialogTitle>
