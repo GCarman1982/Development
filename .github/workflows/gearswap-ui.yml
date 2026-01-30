@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'GearSwapBuilder/gearswap-ui/**'
   workflow_dispatch:
     inputs:
       version_type:
@@ -23,6 +25,10 @@ jobs:
     permissions:
       contents: write
 
+    defaults:
+      run:
+        working-directory: GearSwapBuilder/gearswap-ui
+
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
@@ -34,6 +40,7 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
+          cache-dependency-path: GearSwapBuilder/gearswap-ui/package-lock.json
 
       - name: Configure Git
         run: |

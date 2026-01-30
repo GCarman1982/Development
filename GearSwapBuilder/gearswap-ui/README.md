@@ -1,4 +1,5 @@
 # GearSwap Studio
+![Build Status](https://github.com/GCarman1982/Development/actions/workflows/gearswap-ui.yml/badge.svg)
 
 A classic FFXI-style GearSwap set builder.
 
