@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
     paths:
       - 'GearSwapBuilder/gearswap-ui/**'
   workflow_dispatch:
@@ -50,6 +52,7 @@ jobs:
       - name: Bump version
         id: version
         shell: bash
+        if: "!startsWith(github.ref, 'refs/tags/')"
         run: |
           # Determine version type
           VERSION_TYPE="patch"
